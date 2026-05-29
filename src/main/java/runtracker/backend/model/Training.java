@@ -22,4 +22,6 @@ public class Training {
     private int durationMinutes;
 
     private int averageHeartRate;
+
+    private double pace;
 }
