@@ -1,6 +1,7 @@
 package runtracker.backend.service;
 
 import org.springframework.stereotype.Service;
+import runtracker.backend.dto.TrainingStats;
 import runtracker.backend.model.Training;
 import runtracker.backend.repository.TrainingRepository;
 
@@ -53,6 +54,35 @@ public class TrainingService {
 
     public List<Training> getTrainingsByMinDistance(double minDistance){
         return trainingRepository.findByDistanceKmGreaterThanEqual(minDistance);
+    }
+
+    public TrainingStats getStats(){
+        List<Training> trainings = trainingRepository.findAll();
+        TrainingStats trainingStats = new TrainingStats();
+
+        trainingStats.setTotalTrainings(trainings.size());
+
+        double helpDistance = 0;
+        for(Training training: trainings){
+            helpDistance += training.getDistanceKm();
+        }
+        trainingStats.setTotalDistance(helpDistance);
+
+        double helpPace = 0;
+        for(Training training: trainings){
+            helpPace += training.getPace();
+        }
+        helpPace = helpPace / trainings.size();
+        trainingStats.setAveragePace(helpPace);
+
+        double helpAvgHeartRate = 0;
+        for(Training training: trainings){
+            helpAvgHeartRate += training.getAverageHeartRate();
+        }
+        helpAvgHeartRate /= trainings.size();
+        trainingStats.setAverageHeartRate(helpAvgHeartRate);
+
+        return trainingStats;
     }
 
 }

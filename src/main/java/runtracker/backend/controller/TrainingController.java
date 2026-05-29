@@ -1,6 +1,7 @@
 package runtracker.backend.controller;
 
 import org.springframework.web.bind.annotation.*;
+import runtracker.backend.dto.TrainingStats;
 import runtracker.backend.model.Training;
 import runtracker.backend.service.TrainingService;
 
@@ -44,6 +45,11 @@ public class TrainingController {
     @GetMapping("/filter")
     public List<Training> getTrainingsByMinDistance(@RequestParam double minDistance) {
         return trainingService.getTrainingsByMinDistance(minDistance);
+    }
+
+    @GetMapping("/stats")
+    public TrainingStats getStats() {
+        return trainingService.getStats();
     }
 
 }
