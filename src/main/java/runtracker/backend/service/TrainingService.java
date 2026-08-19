@@ -62,25 +62,30 @@ public class TrainingService {
 
         trainingStats.setTotalTrainings(trainings.size());
 
-        double helpDistance = 0;
-        for(Training training: trainings){
-            helpDistance += training.getDistanceKm();
-        }
-        trainingStats.setTotalDistance(helpDistance);
+        if (trainings.isEmpty()){
+            trainingStats.setTotalDistance(0);
+            trainingStats.setAveragePace(0);
+            trainingStats.setAverageHeartRate(0);
+        }else {
 
-        double helpPace = 0;
-        for(Training training: trainings){
-            helpPace += training.getPace();
-        }
-        helpPace = helpPace / trainings.size();
-        trainingStats.setAveragePace(helpPace);
+            double totalDistance = 0;
+            double averagePace;
+            double totalHeartRate = 0;
+            double totalMinutes = 0;
 
-        double helpAvgHeartRate = 0;
-        for(Training training: trainings){
-            helpAvgHeartRate += training.getAverageHeartRate();
+            for (Training training : trainings) {
+                totalDistance += training.getDistanceKm();
+                totalHeartRate += training.getAverageHeartRate();
+                totalMinutes += training.getDurationMinutes();
+            }
+
+            averagePace = totalMinutes / totalDistance;
+            totalHeartRate /= trainings.size();
+
+            trainingStats.setTotalDistance(totalDistance);
+            trainingStats.setAveragePace(averagePace);
+            trainingStats.setAverageHeartRate(totalHeartRate);
         }
-        helpAvgHeartRate /= trainings.size();
-        trainingStats.setAverageHeartRate(helpAvgHeartRate);
 
         return trainingStats;
     }
