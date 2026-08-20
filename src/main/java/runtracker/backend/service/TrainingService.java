@@ -1,10 +1,13 @@
 package runtracker.backend.service;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 import runtracker.backend.dto.TrainingStats;
 import runtracker.backend.model.Training;
 import runtracker.backend.repository.TrainingRepository;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -90,4 +93,10 @@ public class TrainingService {
         return trainingStats;
     }
 
+    public List<Training> getTrainingsBetweenDates(LocalDate from, LocalDate to) {
+        if(from.isAfter(to)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "from must not be after to");
+        }
+        return trainingRepository.findByDateBetweenOrderByDateAsc(from, to);
+    }
 }

@@ -5,6 +5,7 @@ import runtracker.backend.dto.TrainingStats;
 import runtracker.backend.model.Training;
 import runtracker.backend.service.TrainingService;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -50,6 +51,11 @@ public class TrainingController {
     @GetMapping("/stats")
     public TrainingStats getStats() {
         return trainingService.getStats();
+    }
+
+    @GetMapping("/by-date")
+    public List<Training> getTrainingsBetweenDates(@RequestParam LocalDate from, @RequestParam LocalDate to) {
+        return trainingService.getTrainingsBetweenDates(from, to);
     }
 
 }
