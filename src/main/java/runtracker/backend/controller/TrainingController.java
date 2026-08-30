@@ -1,5 +1,6 @@
 package runtracker.backend.controller;
 
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 import runtracker.backend.dto.TrainingStats;
 import runtracker.backend.model.Training;
@@ -19,7 +20,7 @@ public class TrainingController {
     }
 
     @PostMapping
-    public Training createTraining(@RequestBody Training training) {
+    public Training createTraining(@Valid @RequestBody Training training) {
         return trainingService.createTraining(training);
     }
 
@@ -39,7 +40,7 @@ public class TrainingController {
     }
 
     @PutMapping("/{id}")
-    public Training updateTraining(@PathVariable long id, @RequestBody Training training) {
+    public Training updateTraining(@PathVariable long id,@Valid @RequestBody Training training) {
         return trainingService.updateTraining(id, training);
     }
 
