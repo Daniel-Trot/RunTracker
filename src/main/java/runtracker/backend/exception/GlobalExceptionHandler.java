@@ -26,7 +26,6 @@ public class GlobalExceptionHandler {
         response.put("errors", errors);
 
         return ResponseEntity.badRequest().body(response);
-
     }
 
 }

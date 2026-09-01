@@ -1,6 +1,7 @@
 package runtracker.backend.controller;
 
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 import runtracker.backend.dto.TrainingStats;
 import runtracker.backend.model.Training;
@@ -30,8 +31,9 @@ public class TrainingController {
     }
 
     @GetMapping
-    public List<Training> getAllTrainings() {
-        return trainingService.getAllTrainings();
+    public Page<Training> getTrainingsByPage(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size,
+                                             @RequestParam(defaultValue = "date,asc") String sort) {
+        return trainingService.getTrainingsByPage(page, size, sort);
     }
 
     @DeleteMapping("/{id}")
@@ -40,7 +42,7 @@ public class TrainingController {
     }
 
     @PutMapping("/{id}")
-    public Training updateTraining(@PathVariable long id,@Valid @RequestBody Training training) {
+    public Training updateTraining(@PathVariable long id, @Valid @RequestBody Training training) {
         return trainingService.updateTraining(id, training);
     }
 
