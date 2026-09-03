@@ -48,7 +48,7 @@ public class TrainingService {
             );
         }
 
-        String[] sortParams = sort.split(",",-1);
+        String[] sortParams = sort.split(",", -1);
 
         if (sortParams.length != 2) {
             throw new ResponseStatusException(
@@ -112,8 +112,29 @@ public class TrainingService {
         return trainingRepository.findByDistanceKmGreaterThanEqual(minDistance);
     }
 
-    public TrainingStats getStats() {
-        List<Training> trainings = trainingRepository.findAll();
+    public TrainingStats getStats(LocalDate from, LocalDate to) {
+
+        if (from == null && to == null) {
+            return calculateTrainingStats(trainingRepository.findAll());
+        } else if (from == null || to == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Both from and to must be provided"
+            );
+        } else if (from.isAfter(to)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "From must not be after to"
+            );
+        }
+
+        List<Training> trainings =
+                trainingRepository.findByDateBetweenOrderByDateAsc(from, to);
+
+        return calculateTrainingStats(trainings);
+    }
+
+    public TrainingStats calculateTrainingStats(List<Training> trainings) {
         TrainingStats trainingStats = new TrainingStats();
 
         trainingStats.setTotalTrainings(trainings.size());

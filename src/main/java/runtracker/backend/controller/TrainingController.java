@@ -52,8 +52,9 @@ public class TrainingController {
     }
 
     @GetMapping("/stats")
-    public TrainingStats getStats() {
-        return trainingService.getStats();
+    public TrainingStats getStats(@RequestParam(required = false) LocalDate from ,
+                                  @RequestParam(required = false) LocalDate to ) {
+        return trainingService.getStats(from, to);
     }
 
     @GetMapping("/by-date")
