@@ -1,1 +1,76 @@
-GET http://localhost:8080/api/trainings/filter?minDistance=15
+### 1. POST gültig -> 200/201
+POST http://localhost:8080/api/trainings
+Content-Type: application/json
+
+{
+  "date": "2026-09-06",
+  "distanceKm": 10,
+  "durationMinutes": 48,
+  "averageHeartRate": 151
+}
+
+
+### 2. POST versucht id und pace zu setzen -> Backend soll sie ignorieren
+POST http://localhost:8080/api/trainings
+Content-Type: application/json
+
+{
+  "id": 999,
+  "pace": 2.5,
+  "date": "2026-09-06",
+  "distanceKm": 10,
+  "durationMinutes": 50,
+  "averageHeartRate": 145
+}
+
+
+### 3. PUT gültig -> bestehendes Training ändern
+PUT http://localhost:8080/api/trainings/5
+Content-Type: application/json
+
+{
+  "date": "2026-09-07",
+  "distanceKm": 12,
+  "durationMinutes": 60,
+  "averageHeartRate": 148
+}
+
+
+### 4. PUT ungültige Distanz -> 400
+PUT http://localhost:8080/api/trainings/5
+Content-Type: application/json
+
+{
+  "date": "2026-09-07",
+  "distanceKm": -12,
+  "durationMinutes": 60,
+  "averageHeartRate": 148
+}
+
+
+### 5. PUT ungültige Herzfrequenz -> 400
+PUT http://localhost:8080/api/trainings/5
+Content-Type: application/json
+
+{
+  "date": "2026-09-07",
+  "distanceKm": 12,
+  "durationMinutes": 60,
+  "averageHeartRate": 300
+}
+
+
+### 6. PUT nicht vorhandene ID -> 404
+PUT http://localhost:8080/api/trainings/99999
+Content-Type: application/json
+
+{
+  "date": "2026-09-07",
+  "distanceKm": 12,
+  "durationMinutes": 60,
+  "averageHeartRate": 148
+}
+
+
+### 7. GET kontrollieren
+GET http://localhost:8080/api/trainings/5

@@ -6,6 +6,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
+import runtracker.backend.dto.TrainingRequest;
+import runtracker.backend.dto.TrainingResponse;
 import runtracker.backend.dto.TrainingStats;
 import runtracker.backend.model.Training;
 import runtracker.backend.repository.TrainingRepository;
@@ -23,9 +25,38 @@ public class TrainingService {
         this.trainingRepository = trainingRepository;
     }
 
-    public Training createTraining(Training training) {
-        training.setPace(training.getDurationMinutes() / training.getDistanceKm());
-        return trainingRepository.save(training);
+    public TrainingResponse createTraining(TrainingRequest request) {
+        Training training = mapToEntity(request);
+
+        training.setPace((double) training.getDurationMinutes() / training.getDistanceKm());
+
+        Training savedTraining = trainingRepository.save(training);
+
+        return mapToResponse(savedTraining);
+    }
+
+    private Training mapToEntity(TrainingRequest request) {
+        Training training = new Training();
+
+        training.setDate(request.getDate());
+        training.setDistanceKm(request.getDistanceKm());
+        training.setDurationMinutes(request.getDurationMinutes());
+        training.setAverageHeartRate(request.getAverageHeartRate());
+
+        return training;
+    }
+
+    private TrainingResponse mapToResponse(Training training) {
+        TrainingResponse trainingResponse = new TrainingResponse();
+
+        trainingResponse.setId(training.getId());
+        trainingResponse.setDate(training.getDate());
+        trainingResponse.setDistanceKm(training.getDistanceKm());
+        trainingResponse.setDurationMinutes(training.getDurationMinutes());
+        trainingResponse.setAverageHeartRate(training.getAverageHeartRate());
+        trainingResponse.setPace(training.getPace());
+
+        return trainingResponse;
     }
 
     public Training getTrainingById(long id) {
@@ -91,21 +122,24 @@ public class TrainingService {
         trainingRepository.deleteById(id);
     }
 
-    public Training updateTraining(long id, Training training) {
+    public TrainingResponse updateTraining(long id, TrainingRequest request) {
         Training existingTraining = trainingRepository.findById(id).orElse(null);
 
         if (existingTraining == null) {
-            return null;
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "Training with id " + id + " not found");
         }
 
-        existingTraining.setDate(training.getDate());
-        existingTraining.setDistanceKm(training.getDistanceKm());
-        existingTraining.setDurationMinutes(training.getDurationMinutes());
-        existingTraining.setAverageHeartRate(training.getAverageHeartRate());
+        existingTraining.setDate(request.getDate());
+        existingTraining.setDistanceKm(request.getDistanceKm());
+        existingTraining.setDurationMinutes(request.getDurationMinutes());
+        existingTraining.setAverageHeartRate(request.getAverageHeartRate());
 
         existingTraining.setPace(existingTraining.getDurationMinutes() / existingTraining.getDistanceKm());
 
-        return trainingRepository.save(existingTraining);
+        Training savedTraining = trainingRepository.save(existingTraining);
+        return mapToResponse(savedTraining);
     }
 
     public List<Training> getTrainingsByMinDistance(double minDistance) {

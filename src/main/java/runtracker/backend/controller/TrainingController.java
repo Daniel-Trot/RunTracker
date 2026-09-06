@@ -3,6 +3,8 @@ package runtracker.backend.controller;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
+import runtracker.backend.dto.TrainingRequest;
+import runtracker.backend.dto.TrainingResponse;
 import runtracker.backend.dto.TrainingStats;
 import runtracker.backend.model.Training;
 import runtracker.backend.service.TrainingService;
@@ -21,8 +23,8 @@ public class TrainingController {
     }
 
     @PostMapping
-    public Training createTraining(@Valid @RequestBody Training training) {
-        return trainingService.createTraining(training);
+    public TrainingResponse createTraining(@Valid @RequestBody TrainingRequest request) {
+        return trainingService.createTraining(request);
     }
 
     @GetMapping("/{id}")
@@ -42,8 +44,8 @@ public class TrainingController {
     }
 
     @PutMapping("/{id}")
-    public Training updateTraining(@PathVariable long id, @Valid @RequestBody Training training) {
-        return trainingService.updateTraining(id, training);
+    public TrainingResponse updateTraining(@PathVariable long id, @Valid @RequestBody TrainingRequest request) {
+        return trainingService.updateTraining(id, request);
     }
 
     @GetMapping("/filter")
