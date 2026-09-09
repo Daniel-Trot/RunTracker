@@ -13,6 +13,7 @@ import runtracker.backend.model.Training;
 import runtracker.backend.repository.TrainingRepository;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -59,11 +60,20 @@ public class TrainingService {
         return trainingResponse;
     }
 
-    public Training getTrainingById(long id) {
-        return trainingRepository.findById(id).orElse(null);
+    public TrainingResponse getTrainingById(long id) {
+        Training foundTraining = trainingRepository.findById(id).orElse(null);
+
+        if (foundTraining == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    String.format("Training with id %d not found", id)
+            );
+        }
+
+        return mapToResponse(foundTraining);
     }
 
-    public Page<Training> getTrainingsByPage(int page, int size, String sort) {
+    public Page<TrainingResponse> getTrainingsByPage(int page, int size, String sort) {
 
         if (page < 0) {
             throw new ResponseStatusException(
@@ -100,7 +110,9 @@ public class TrainingService {
         );
 
         if (!validProperties.contains(property)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Parameter " + property + " is not valid");
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Parameter " + property + " is not valid");
         }
 
         Sort.Direction sortDirection;
@@ -115,7 +127,8 @@ public class TrainingService {
 
         Sort sortObject = Sort.by(sortDirection, property);
 
-        return trainingRepository.findAll(PageRequest.of(page, size, sortObject));
+        Page<Training> trainingPage = trainingRepository.findAll(PageRequest.of(page, size, sortObject));
+        return trainingPage.map(this::mapToResponse);
     }
 
     public void deleteTrainingById(long id) {
@@ -142,8 +155,15 @@ public class TrainingService {
         return mapToResponse(savedTraining);
     }
 
-    public List<Training> getTrainingsByMinDistance(double minDistance) {
-        return trainingRepository.findByDistanceKmGreaterThanEqual(minDistance);
+    public List<TrainingResponse> getTrainingsByMinDistance(double minDistance) {
+        List<Training> foundTrainings = trainingRepository.findByDistanceKmGreaterThanEqual(minDistance);
+        List<TrainingResponse> response = new ArrayList<>();
+
+        for (Training training : foundTrainings) {
+            response.add(mapToResponse(training));
+        }
+
+        return response;
     }
 
     public TrainingStats getStats(LocalDate from, LocalDate to) {
@@ -201,11 +221,21 @@ public class TrainingService {
         return trainingStats;
     }
 
-    public List<Training> getTrainingsBetweenDates(LocalDate from, LocalDate to) {
+    public List<TrainingResponse> getTrainingsBetweenDates(LocalDate from, LocalDate to) {
         if (from.isAfter(to)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "from must not be after to");
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "from must not be after to");
         }
-        return trainingRepository.findByDateBetweenOrderByDateAsc(from, to);
+
+        List<Training> trainings = trainingRepository.findByDateBetweenOrderByDateAsc(from, to);
+        List<TrainingResponse> response = new ArrayList<>();
+
+        for (Training training : trainings) {
+            response.add(mapToResponse(training));
+        }
+
+        return response;
     }
 
 }
