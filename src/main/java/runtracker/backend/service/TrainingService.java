@@ -132,6 +132,13 @@ public class TrainingService {
     }
 
     public void deleteTrainingById(long id) {
+        if (!trainingRepository.existsById(id)) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "Training with id " + id + " not found"
+            );
+        }
+
         trainingRepository.deleteById(id);
     }
 

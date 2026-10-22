@@ -4,9 +4,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.server.ResponseStatusException;
 import runtracker.backend.dto.TrainingRequest;
 import runtracker.backend.dto.TrainingResponse;
 import runtracker.backend.service.TrainingService;
@@ -16,9 +18,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(TrainingController.class)
@@ -123,7 +125,7 @@ public class TrainingControllerTest {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request))
                 )
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(5))
                 .andExpect(jsonPath("$.distanceKm").value(10))
                 .andExpect(jsonPath("$.pace").value(5.0));
@@ -165,5 +167,33 @@ public class TrainingControllerTest {
                                 .content(objectMapper.writeValueAsString(request))
                 )
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void deleteTrainingReturnsNoContent() throws Exception {
+
+        // WHEN + THEN
+        mockMvc.perform(
+                        delete("/api/trainings/{id}", 5L)
+                )
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void deleteTrainingByIdReturnsNotFound() throws Exception {
+
+        // GIVEN
+        doThrow(new ResponseStatusException(
+                HttpStatus.NOT_FOUND,
+                "Training not found"
+        ))
+                .when(trainingService)
+                .deleteTrainingById(999L);
+
+        // WHEN + THEN
+        mockMvc.perform(
+                        delete("/api/trainings/{id}", 999L)
+                )
+                .andExpect(status().isNotFound());
     }
 }

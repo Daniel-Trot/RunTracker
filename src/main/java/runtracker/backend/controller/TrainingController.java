@@ -2,6 +2,8 @@ package runtracker.backend.controller;
 
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import runtracker.backend.dto.TrainingRequest;
 import runtracker.backend.dto.TrainingResponse;
@@ -22,8 +24,13 @@ public class TrainingController {
     }
 
     @PostMapping
-    public TrainingResponse createTraining(@Valid @RequestBody TrainingRequest request) {
-        return trainingService.createTraining(request);
+    public ResponseEntity<TrainingResponse> createTraining(@Valid @RequestBody TrainingRequest request) {
+
+        TrainingResponse response = trainingService.createTraining(request);
+
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(response);
     }
 
     @GetMapping("/{id}")
@@ -33,13 +40,14 @@ public class TrainingController {
 
     @GetMapping
     public Page<TrainingResponse> getTrainingsByPage(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size,
-                                             @RequestParam(defaultValue = "date,asc") String sort) {
+                                                     @RequestParam(defaultValue = "date,asc") String sort) {
         return trainingService.getTrainingsByPage(page, size, sort);
     }
 
     @DeleteMapping("/{id}")
-    public void deleteTrainingById(@PathVariable long id) {
+    public ResponseEntity<Void> deleteTrainingById(@PathVariable long id) {
         trainingService.deleteTrainingById(id);
+        return ResponseEntity.noContent().build();
     }
 
     @PutMapping("/{id}")
@@ -53,8 +61,8 @@ public class TrainingController {
     }
 
     @GetMapping("/stats")
-    public TrainingStats getStats(@RequestParam(required = false) LocalDate from ,
-                                  @RequestParam(required = false) LocalDate to ) {
+    public TrainingStats getStats(@RequestParam(required = false) LocalDate from,
+                                  @RequestParam(required = false) LocalDate to) {
         return trainingService.getStats(from, to);
     }
 
