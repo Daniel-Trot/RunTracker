@@ -12,6 +12,8 @@ import runtracker.backend.dto.TrainingResponse;
 import runtracker.backend.service.TrainingService;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -53,6 +55,48 @@ public class TrainingControllerTest {
     }
 
     @Test
+    void getTrainingsBetweenDates() throws Exception {
+
+        // GIVEN
+        TrainingResponse response1 = new TrainingResponse();
+        response1.setId(5L);
+        response1.setDate(LocalDate.of(2026, 9, 17));
+        response1.setDistanceKm(10);
+        response1.setDurationMinutes(50);
+        response1.setAverageHeartRate(145);
+        response1.setPace(5.0);
+
+        TrainingResponse response2 = new TrainingResponse();
+        response2.setId(6L);
+        response2.setDate(LocalDate.of(2026, 9, 17));
+        response2.setDistanceKm(10);
+        response2.setDurationMinutes(60);
+        response2.setAverageHeartRate(145);
+        response2.setPace(6.0);
+
+        List<TrainingResponse> responseList = new ArrayList<>();
+        responseList.add(response1);
+        responseList.add(response2);
+
+        when(trainingService.getTrainingsBetweenDates(
+                any(LocalDate.class),
+                any(LocalDate.class)
+        )).thenReturn(responseList);
+
+        // WHEN + THEN
+        mockMvc.perform(get("/api/trainings/by-date")
+                        .param("from", "2026-09-17")
+                        .param("to", "2026-09-17")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(5))
+                .andExpect(jsonPath("$[0].distanceKm").value(10))
+                .andExpect(jsonPath("$[0].durationMinutes").value(50))
+                .andExpect(jsonPath("$[1].id").value(6))
+                .andExpect(jsonPath("$[1].pace").value(6.0));
+    }
+
+    @Test
     void createTraining() throws Exception {
 
         // GIVEN
@@ -83,5 +127,43 @@ public class TrainingControllerTest {
                 .andExpect(jsonPath("$.id").value(5))
                 .andExpect(jsonPath("$.distanceKm").value(10))
                 .andExpect(jsonPath("$.pace").value(5.0));
+    }
+
+    @Test
+    void createTrainingWithNegativeDistanceKm() throws Exception {
+
+        // GIVEN
+        TrainingRequest request = new TrainingRequest();
+        request.setDate(LocalDate.of(2026, 9, 17));
+        request.setDistanceKm(-5);
+        request.setDurationMinutes(50);
+        request.setAverageHeartRate(145);
+
+        // WHEN + THEN
+        mockMvc.perform(
+                        post("/api/trainings")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request))
+                )
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void createTrainingWithInvalidDate() throws Exception {
+
+        // GIVEN
+        TrainingRequest request = new TrainingRequest();
+        request.setDate(null);
+        request.setDistanceKm(10);
+        request.setDurationMinutes(50);
+        request.setAverageHeartRate(145);
+
+        // WEHEN + THEN
+        mockMvc.perform(
+                        post("/api/trainings")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request))
+                )
+                .andExpect(status().isBadRequest());
     }
 }
