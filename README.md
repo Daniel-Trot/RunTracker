@@ -24,6 +24,8 @@ using Spring Boot and PostgreSQL.
 - Mockito
 - MockMvc
 - Maven
+- Docker
+- Docker Compose
 
 ## Architecture
 ```text
@@ -89,7 +91,7 @@ The project includes the Maven Wrapper, so a separate Maven installation is not 
 ### 1. Clone the repository
 
 ```bash
-git clone <https://github.com/Daniel-Trot/RunTracker>
+git clone https://github.com/Daniel-Trot/RunTracker
 cd RunTracker
 ```
 
@@ -172,12 +174,54 @@ GET http://localhost:8080/api/trainings
 
 A successful request returns the available trainings with pagination information.
 
+### 6. Run with Docker
+
+Docker can be used to start both the RunTracker backend and PostgreSQL without requiring a locally configured PostgreSQL database.
+
+Create a `.env` file in the project root:
+
+```env
+POSTGRES_PASSWORD=your_postgresql_password
+```
+
+The `.env` file is excluded from Git and should not be committed.
+
+Start the application and PostgreSQL with:
+
+```bash
+docker compose up --build
+```
+
+Docker Compose will start:
+
+- the RunTracker Spring Boot backend
+- a PostgreSQL 17 database
+- a persistent Docker volume for the database data
+
+The application will be available at:
+
+```text
+http://localhost:8080
+```
+
+Swagger UI is available at:
+
+```text
+http://localhost:8080/swagger-ui.html
+```
+
+To stop the containers:
+
+```bash
+docker compose down
+```
+
+Database data is stored in a Docker volume and remains available after the containers are stopped or restarted.
+
 ## Future Improvements
 
 The project is actively being developed. Planned improvements include:
 
-- OpenAPI / Swagger documentation for the REST API
-- Docker and Docker Compose support for the application and PostgreSQL
 - Continuous integration with GitHub Actions
 - Additional integration tests
 - Further code refactoring and cleanup
