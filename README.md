@@ -3,6 +3,8 @@ RunTracker is a RESTful backend application for managing and analyzing running a
 It provides CRUD operations, filtering, statistics, pagination, validation and automated tests 
 using Spring Boot and PostgreSQL.
 
+![CI](https://github.com/Daniel-Trot/RunTracker/actions/workflows/ci.yml/badge.svg)
+
 ## Features
 - Create, read, update and delete training activities
 - Filter trainings by minimum distance
@@ -26,6 +28,8 @@ using Spring Boot and PostgreSQL.
 - Maven
 - Docker
 - Docker Compose
+- GitHub Actions
+- OpenAPI / Swagger
 
 ## Architecture
 ```text
@@ -74,6 +78,7 @@ The project includes automated tests for the service and controller layers.
 
 - `TrainingServiceTest` uses JUnit 5 and Mockito to test business logic independently from the database.
 - `TrainingControllerTest` uses MockMvc with a mocked service layer to test REST endpoints, validation and HTTP status codes.
+- GitHub Actions automatically runs the test suite on every push and pull request.
 
 ## Setup
 
@@ -82,7 +87,7 @@ The project includes automated tests for the service and controller layers.
 Make sure the following software is installed:
 
 - Java 21 or newer
-- PostgreSQL
+- PostgreSQL (for local setup without Docker)
 - Git
 - IntelliJ IDEA or another Java IDE (optional)
 
@@ -222,7 +227,6 @@ Database data is stored in a Docker volume and remains available after the conta
 
 The project is actively being developed. Planned improvements include:
 
-- Continuous integration with GitHub Actions
 - Additional integration tests
 - Further code refactoring and cleanup
 - Improved API documentation and example requests
