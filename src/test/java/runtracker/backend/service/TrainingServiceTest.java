@@ -5,11 +5,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.server.ResponseStatusException;
 import runtracker.backend.dto.TrainingRequest;
 import runtracker.backend.dto.TrainingResponse;
 import runtracker.backend.dto.TrainingStats;
+import runtracker.backend.exception.InvalidTrainingRequestException;
+import runtracker.backend.exception.TrainingNotFoundException;
 import runtracker.backend.model.Training;
 import runtracker.backend.repository.TrainingRepository;
 
@@ -33,12 +33,12 @@ public class TrainingServiceTest {
     private TrainingService trainingService;
 
     @Test
-    void checkPaceCalculation() {
+    void createTrainingCalculatesPace() {
 
         // GIVEN
         TrainingRequest trainingRequest = new TrainingRequest();
         trainingRequest.setDate(LocalDate.of(2026, 9, 9));
-        trainingRequest.setDistanceKm(10);
+        trainingRequest.setDistanceKm(10.0);
         trainingRequest.setDurationMinutes(50);
         trainingRequest.setAverageHeartRate(145);
 
@@ -89,16 +89,16 @@ public class TrainingServiceTest {
                 thenReturn(Optional.empty());
 
         // WHEN + THEN
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
+        TrainingNotFoundException exception = assertThrows(
+                TrainingNotFoundException.class,
                 () -> trainingService.getTrainingById(999L)
         );
 
-        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+        assertEquals("Training with id 999 not found", exception.getMessage());
     }
 
     @Test
-    void checkTrainingStatsCalculation() {
+    void getStatsReturnsCorrectStatistics() {
         // GIVEN
         Training training1 = new Training();
         training1.setDistanceKm(5);
@@ -133,17 +133,17 @@ public class TrainingServiceTest {
     }
 
     @Test
-    void checkTrainingStatsThrowsNotFoundException(){
+    void getStatsThrowsInvalidRequestWhenFromIsAfterTo(){
         // GIVEN
         LocalDate from = LocalDate.of(2026, 9, 30);
         LocalDate to = LocalDate.of(2026, 9, 1);
 
         // WHEN + THEN
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
+        InvalidTrainingRequestException exception = assertThrows(
+                InvalidTrainingRequestException.class,
                 () -> trainingService.getStats(from,to));
 
-        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        assertEquals("From must not be after to", exception.getMessage());
 
     }
 }

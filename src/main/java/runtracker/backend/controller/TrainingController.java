@@ -121,10 +121,15 @@ public class TrainingController {
             summary = "Filter trainings by minimum distance",
             description = "Returns trainings with a distance greater than or equal to the given minimum distance"
     )
-    @ApiResponse(
-            responseCode = "200",
-            description = "Filtered trainings returned successfully"
-    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Filtered trainings returned successfully"),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Invalid minimum distance"
+            )
+    })
     @GetMapping("/filter")
     public List<TrainingResponse> getTrainingsByMinDistance(@RequestParam double minDistance) {
         return trainingService.getTrainingsByMinDistance(minDistance);

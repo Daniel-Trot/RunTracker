@@ -13,17 +13,20 @@ import java.time.LocalDate;
 @Getter
 public class TrainingRequest {
 
-    @NotNull
+    @NotNull(message = "date must not be null")
     private LocalDate date;
 
-    @Positive
-    private double distanceKm;
+    @NotNull(message = "distanceKm must not be null")
+    @Positive(message = "distanceKm must be grater than 0")
+    private Double distanceKm;
 
-    @Positive
-    private int durationMinutes;
+    @NotNull(message = "durationMinutes must not be null")
+    @Positive(message = "durationMinutes must be greater than 0")
+    private Integer durationMinutes;
 
-    @Min(30)
-    @Max(250)
-    private int averageHeartRate;
+    @NotNull(message = "averageHeartRate must not be null")
+    @Min(value = 30, message = "averageHeartRate must be at least 30")
+    @Max(value = 250, message = "averageHeartRate must be at most 250")
+    private Integer averageHeartRate;
 
 }

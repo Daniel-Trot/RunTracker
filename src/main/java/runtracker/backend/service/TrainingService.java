@@ -3,12 +3,12 @@ package runtracker.backend.service;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 import runtracker.backend.dto.TrainingRequest;
 import runtracker.backend.dto.TrainingResponse;
 import runtracker.backend.dto.TrainingStats;
+import runtracker.backend.exception.InvalidTrainingRequestException;
+import runtracker.backend.exception.TrainingNotFoundException;
 import runtracker.backend.model.Training;
 import runtracker.backend.repository.TrainingRepository;
 
@@ -22,6 +22,14 @@ public class TrainingService {
 
     private final TrainingRepository trainingRepository;
 
+    private static final Set<String> VALID_SORT_PROPERTIES = Set.of(
+            "date",
+            "distanceKm",
+            "durationMinutes",
+            "averageHeartRate",
+            "pace"
+    );
+
     public TrainingService(TrainingRepository trainingRepository) {
         this.trainingRepository = trainingRepository;
     }
@@ -29,7 +37,7 @@ public class TrainingService {
     public TrainingResponse createTraining(TrainingRequest request) {
         Training training = mapToEntity(request);
 
-        training.setPace((double) training.getDurationMinutes() / training.getDistanceKm());
+        training.setPace(calculatePace(training));
 
         Training savedTraining = trainingRepository.save(training);
 
@@ -38,12 +46,7 @@ public class TrainingService {
 
     private Training mapToEntity(TrainingRequest request) {
         Training training = new Training();
-
-        training.setDate(request.getDate());
-        training.setDistanceKm(request.getDistanceKm());
-        training.setDurationMinutes(request.getDurationMinutes());
-        training.setAverageHeartRate(request.getAverageHeartRate());
-
+        updateTrainingFromRequest(training, request);
         return training;
     }
 
@@ -60,71 +63,78 @@ public class TrainingService {
         return trainingResponse;
     }
 
-    public TrainingResponse getTrainingById(long id) {
-        Training foundTraining = trainingRepository.findById(id).orElse(null);
+    private void updateTrainingFromRequest(Training training, TrainingRequest request) {
+        training.setDate(request.getDate());
+        training.setDistanceKm(request.getDistanceKm());
+        training.setDurationMinutes(request.getDurationMinutes());
+        training.setAverageHeartRate(request.getAverageHeartRate());
+    }
 
-        if (foundTraining == null) {
-            throw new ResponseStatusException(
-                    HttpStatus.NOT_FOUND,
-                    String.format("Training with id %d not found", id)
-            );
+    private List<TrainingResponse> mapToResponseList(List<Training> trainings) {
+        List<TrainingResponse> responses = new ArrayList<>();
+
+        for (Training training : trainings) {
+            responses.add(mapToResponse(training));
+        }
+        return responses;
+    }
+
+    private Training findTrainingOrThrow(long id) {
+        return trainingRepository.findById(id)
+                .orElseThrow(() -> new TrainingNotFoundException(id));
+    }
+
+    private double calculatePace(Training training) {
+        return (double) training.getDurationMinutes() / training.getDistanceKm();
+    }
+
+    private Sort.Direction parseSortDirection(String direction) {
+        if (direction.equalsIgnoreCase("asc")) {
+            return Sort.Direction.ASC;
         }
 
+        if (direction.equalsIgnoreCase("desc")) {
+            return Sort.Direction.DESC;
+        }
+
+        throw new InvalidTrainingRequestException("Invalid sort direction");
+    }
+
+    private void validateDateRange(LocalDate from, LocalDate to) {
+        if (from.isAfter(to)) {
+            throw new InvalidTrainingRequestException("From must not be after to");
+        }
+    }
+
+    public TrainingResponse getTrainingById(long id) {
+        Training foundTraining = findTrainingOrThrow(id);
         return mapToResponse(foundTraining);
     }
 
     public Page<TrainingResponse> getTrainingsByPage(int page, int size, String sort) {
 
         if (page < 0) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "Page must be 0 or greater"
-            );
+            throw new InvalidTrainingRequestException("Page must be 0 or greater");
         }
 
         if (size < 1 || size > 100) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "Size must be between 1 and 100"
-            );
+            throw new InvalidTrainingRequestException("Size must be between 1 and 100");
         }
 
         String[] sortParams = sort.split(",", -1);
 
         if (sortParams.length != 2) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "Sort must have format property,direction"
-            );
+            throw new InvalidTrainingRequestException("Sort must have format property,direction");
         }
 
         String property = sortParams[0];
         String direction = sortParams[1];
 
-        Set<String> validProperties = Set.of(
-                "date",
-                "distanceKm",
-                "durationMinutes",
-                "averageHeartRate",
-                "pace"
-        );
-
-        if (!validProperties.contains(property)) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "Parameter " + property + " is not valid");
+        if (!VALID_SORT_PROPERTIES.contains(property)) {
+            throw new InvalidTrainingRequestException("Parameter " + property + " is not valid");
         }
 
-        Sort.Direction sortDirection;
-
-        if (direction.equalsIgnoreCase("asc")) {
-            sortDirection = Sort.Direction.ASC;
-        } else if (direction.equalsIgnoreCase("desc")) {
-            sortDirection = Sort.Direction.DESC;
-        } else {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid direction");
-        }
-
+        Sort.Direction sortDirection = parseSortDirection(direction);
         Sort sortObject = Sort.by(sortDirection, property);
 
         Page<Training> trainingPage = trainingRepository.findAll(PageRequest.of(page, size, sortObject));
@@ -132,45 +142,29 @@ public class TrainingService {
     }
 
     public void deleteTrainingById(long id) {
-        if (!trainingRepository.existsById(id)) {
-            throw new ResponseStatusException(
-                    HttpStatus.NOT_FOUND,
-                    "Training with id " + id + " not found"
-            );
-        }
-
-        trainingRepository.deleteById(id);
+        Training training = findTrainingOrThrow(id);
+        trainingRepository.delete(training);
     }
 
     public TrainingResponse updateTraining(long id, TrainingRequest request) {
-        Training existingTraining = trainingRepository.findById(id).orElse(null);
+        Training existingTraining = findTrainingOrThrow(id);
 
-        if (existingTraining == null) {
-            throw new ResponseStatusException(
-                    HttpStatus.NOT_FOUND,
-                    "Training with id " + id + " not found");
-        }
-
-        existingTraining.setDate(request.getDate());
-        existingTraining.setDistanceKm(request.getDistanceKm());
-        existingTraining.setDurationMinutes(request.getDurationMinutes());
-        existingTraining.setAverageHeartRate(request.getAverageHeartRate());
-
-        existingTraining.setPace(existingTraining.getDurationMinutes() / existingTraining.getDistanceKm());
+        updateTrainingFromRequest(existingTraining, request);
+        existingTraining.setPace(calculatePace(existingTraining));
 
         Training savedTraining = trainingRepository.save(existingTraining);
         return mapToResponse(savedTraining);
     }
 
     public List<TrainingResponse> getTrainingsByMinDistance(double minDistance) {
-        List<Training> foundTrainings = trainingRepository.findByDistanceKmGreaterThanEqual(minDistance);
-        List<TrainingResponse> response = new ArrayList<>();
 
-        for (Training training : foundTrainings) {
-            response.add(mapToResponse(training));
+        if (minDistance < 0) {
+            throw new InvalidTrainingRequestException("Minimum distance must be 0 or greater");
         }
 
-        return response;
+        List<Training> foundTrainings =
+                trainingRepository.findByDistanceKmGreaterThanEqual(minDistance);
+        return mapToResponseList(foundTrainings);
     }
 
     public TrainingStats getStats(LocalDate from, LocalDate to) {
@@ -178,16 +172,10 @@ public class TrainingService {
         if (from == null && to == null) {
             return calculateTrainingStats(trainingRepository.findAll());
         } else if (from == null || to == null) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "Both from and to must be provided"
-            );
-        } else if (from.isAfter(to)) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "From must not be after to"
-            );
+            throw new InvalidTrainingRequestException("Both from and to must be provided");
         }
+
+        validateDateRange(from, to);
 
         List<Training> trainings =
                 trainingRepository.findByDateBetweenOrderByDateAsc(from, to);
@@ -195,54 +183,43 @@ public class TrainingService {
         return calculateTrainingStats(trainings);
     }
 
-    public TrainingStats calculateTrainingStats(List<Training> trainings) {
-        TrainingStats trainingStats = new TrainingStats();
+    private TrainingStats calculateTrainingStats(List<Training> trainings) {
+        TrainingStats stats = new TrainingStats();
 
-        trainingStats.setTotalTrainings(trainings.size());
+        stats.setTotalTrainings(trainings.size());
 
         if (trainings.isEmpty()) {
-            trainingStats.setTotalDistance(0);
-            trainingStats.setAveragePace(0);
-            trainingStats.setAverageHeartRate(0);
-        } else {
-
-            double totalDistance = 0;
-            double averagePace;
-            double totalHeartRate = 0;
-            double totalMinutes = 0;
-
-            for (Training training : trainings) {
-                totalDistance += training.getDistanceKm();
-                totalHeartRate += training.getAverageHeartRate();
-                totalMinutes += training.getDurationMinutes();
-            }
-
-            averagePace = totalMinutes / totalDistance;
-            totalHeartRate /= trainings.size();
-
-            trainingStats.setTotalDistance(totalDistance);
-            trainingStats.setAveragePace(averagePace);
-            trainingStats.setAverageHeartRate(totalHeartRate);
+            stats.setTotalDistance(0);
+            stats.setAveragePace(0);
+            stats.setAverageHeartRate(0);
+            return stats;
         }
 
-        return trainingStats;
+        double totalDistance = 0;
+        double totalHeartRate = 0;
+        double totalMinutes = 0;
+
+        for (Training training : trainings) {
+            totalDistance += training.getDistanceKm();
+            totalHeartRate += training.getAverageHeartRate();
+            totalMinutes += training.getDurationMinutes();
+        }
+
+        double averagePace = totalMinutes / totalDistance;
+        double averageHeartRate = totalHeartRate / trainings.size();
+
+        stats.setTotalDistance(totalDistance);
+        stats.setAveragePace(averagePace);
+        stats.setAverageHeartRate(averageHeartRate);
+
+        return stats;
     }
 
     public List<TrainingResponse> getTrainingsBetweenDates(LocalDate from, LocalDate to) {
-        if (from.isAfter(to)) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "from must not be after to");
-        }
+        validateDateRange(from, to);
 
-        List<Training> trainings = trainingRepository.findByDateBetweenOrderByDateAsc(from, to);
-        List<TrainingResponse> response = new ArrayList<>();
-
-        for (Training training : trainings) {
-            response.add(mapToResponse(training));
-        }
-
-        return response;
+        List<Training> trainings =
+                trainingRepository.findByDateBetweenOrderByDateAsc(from, to);
+        return mapToResponseList(trainings);
     }
-
 }

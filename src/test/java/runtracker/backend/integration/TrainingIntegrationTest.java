@@ -57,7 +57,7 @@ public class TrainingIntegrationTest {
         // GIVEN
         TrainingRequest request = new TrainingRequest();
         request.setDate(LocalDate.of(2026, 10, 24));
-        request.setDistanceKm(10);
+        request.setDistanceKm(10.0);
         request.setAverageHeartRate(125);
         request.setDurationMinutes(50);
 
@@ -71,7 +71,7 @@ public class TrainingIntegrationTest {
                 .andExpect(jsonPath("$.distanceKm").value(10))
                 .andExpect(jsonPath("$.pace").value(5));
 
-        // THEN: saved in ProstgreSQL?
+        // THEN: saved in PostgreSQL?
 
         assertEquals(1, trainingRepository.count());
 

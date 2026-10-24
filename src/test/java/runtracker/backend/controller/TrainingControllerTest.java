@@ -4,13 +4,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.web.server.ResponseStatusException;
 import runtracker.backend.dto.TrainingRequest;
 import runtracker.backend.dto.TrainingResponse;
+import runtracker.backend.exception.TrainingNotFoundException;
 import runtracker.backend.service.TrainingService;
 
 import java.time.LocalDate;
@@ -36,7 +35,7 @@ public class TrainingControllerTest {
     private ObjectMapper objectMapper;
 
     @Test
-    void getTrainingById() throws Exception {
+    void getTrainingByIdReturnsTraining() throws Exception {
         // GIVEN
         TrainingResponse response = new TrainingResponse();
         response.setId(5L);
@@ -57,7 +56,7 @@ public class TrainingControllerTest {
     }
 
     @Test
-    void getTrainingsBetweenDates() throws Exception {
+    void getTrainingsBetweenDatesReturnsTrainings() throws Exception {
 
         // GIVEN
         TrainingResponse response1 = new TrainingResponse();
@@ -99,12 +98,12 @@ public class TrainingControllerTest {
     }
 
     @Test
-    void createTraining() throws Exception {
+    void createTrainingReturnsCreatedTraining() throws Exception {
 
         // GIVEN
         TrainingRequest request = new TrainingRequest();
         request.setDate(LocalDate.of(2026, 9, 17));
-        request.setDistanceKm(10);
+        request.setDistanceKm(10.0);
         request.setDurationMinutes(50);
         request.setAverageHeartRate(145);
 
@@ -137,7 +136,7 @@ public class TrainingControllerTest {
         // GIVEN
         TrainingRequest request = new TrainingRequest();
         request.setDate(LocalDate.of(2026, 9, 17));
-        request.setDistanceKm(-5);
+        request.setDistanceKm(-5.0);
         request.setDurationMinutes(50);
         request.setAverageHeartRate(145);
 
@@ -156,11 +155,11 @@ public class TrainingControllerTest {
         // GIVEN
         TrainingRequest request = new TrainingRequest();
         request.setDate(null);
-        request.setDistanceKm(10);
+        request.setDistanceKm(10.0);
         request.setDurationMinutes(50);
         request.setAverageHeartRate(145);
 
-        // WEHEN + THEN
+        // WHEN + THEN
         mockMvc.perform(
                         post("/api/trainings")
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -183,10 +182,7 @@ public class TrainingControllerTest {
     void deleteTrainingByIdReturnsNotFound() throws Exception {
 
         // GIVEN
-        doThrow(new ResponseStatusException(
-                HttpStatus.NOT_FOUND,
-                "Training not found"
-        ))
+        doThrow(new TrainingNotFoundException(999L))
                 .when(trainingService)
                 .deleteTrainingById(999L);
 
