@@ -30,6 +30,7 @@ using Spring Boot and PostgreSQL.
 - Docker Compose
 - GitHub Actions
 - OpenAPI / Swagger
+- Testcontainers
 
 ## Architecture
 ```text
@@ -48,16 +49,59 @@ Additional components:
 - Bean Validation
 
 ## API Endpoints
+
 | Method | Endpoint | Description |
 |---|---|---|
-| POST | `/api/trainings` | Create a training |
+| POST | `/api/trainings` | Create a new training activity |
 | GET | `/api/trainings/{id}` | Get a training by ID |
-| GET | `/api/trainings` | Get trainings with pagination and sorting |
-| PUT | `/api/trainings/{id}` | Update a training |
+| GET | `/api/trainings?page=0&size=10&sort=date,asc` | Get trainings with pagination and sorting |
+| PUT | `/api/trainings/{id}` | Update an existing training |
 | DELETE | `/api/trainings/{id}` | Delete a training |
-| GET | `/api/trainings/filter` | Filter trainings by minimum distance |
-| GET | `/api/trainings/by-date` | Filter trainings by date range |
-| GET | `/api/trainings/stats` | Get training statistics |
+| GET | `/api/trainings/filter?minDistance=10` | Filter trainings by minimum distance |
+| GET | `/api/trainings/by-date?from=2026-10-01&to=2026-10-31` | Filter trainings by date range |
+| GET | `/api/trainings/stats` | Get statistics for all trainings |
+| GET | `/api/trainings/stats?from=2026-10-01&to=2026-10-31` | Get statistics for a specific date range |
+
+### Example Request
+
+Create a new training:
+
+```http
+POST /api/trainings
+Content-Type: application/json
+```
+
+```json
+{
+  "date": "2026-10-25",
+  "distanceKm": 10.0,
+  "durationMinutes": 50,
+  "averageHeartRate": 145
+}
+```
+
+### Example Response
+
+A successful request returns HTTP `201 Created`:
+
+```json
+{
+  "id": 1,
+  "date": "2026-10-25",
+  "distanceKm": 10.0,
+  "durationMinutes": 50,
+  "averageHeartRate": 145,
+  "pace": 5.0
+}
+```
+
+The `pace` value is calculated automatically from the training duration and distance.
+
+Interactive API documentation is available through Swagger UI when the application is running:
+
+```text
+http://localhost:8080/swagger-ui.html
+```
 
 ## Validation & Error Handling
 Incoming training requests are validated using Jakarta Bean Validation.
@@ -74,10 +118,12 @@ and returned as structured HTTP 400 responses.
 Missing trainings are returned as HTTP 404 responses.
 
 ## Testing
-The project includes automated tests for the service and controller layers.
+
+The project includes unit, controller and integration tests.
 
 - `TrainingServiceTest` uses JUnit 5 and Mockito to test business logic independently from the database.
 - `TrainingControllerTest` uses MockMvc with a mocked service layer to test REST endpoints, validation and HTTP status codes.
+- `TrainingIntegrationTest` uses Testcontainers with PostgreSQL to test the complete flow from controller to service to repository.
 - GitHub Actions automatically runs the test suite on every push and pull request.
 
 ## Setup
@@ -90,6 +136,7 @@ Make sure the following software is installed:
 - PostgreSQL (for local setup without Docker)
 - Git
 - IntelliJ IDEA or another Java IDE (optional)
+- Docker (optional, for containerized setup)
 
 The project includes the Maven Wrapper, so a separate Maven installation is not required.
 
@@ -171,13 +218,15 @@ http://localhost:8080
 
 ### 5. Test the API
 
-For example:
+The API can be tested using Swagger UI:
 
-```http
-GET http://localhost:8080/api/trainings
+```text
+http://localhost:8080/swagger-ui.html
 ```
 
-A successful request returns the available trainings with pagination information.
+Swagger provides interactive documentation for all available endpoints and allows requests to be executed directly from the browser.
+
+Alternatively, the API can be tested with tools such as Postman, IntelliJ HTTP Client or curl.
 
 ### 6. Run with Docker
 
@@ -227,7 +276,6 @@ Database data is stored in a Docker volume and remains available after the conta
 
 The project is actively being developed. Planned improvements include:
 
-- Additional integration tests
-- Further code refactoring and cleanup
-- Improved API documentation and example requests
 - Frontend integration for managing and analyzing training activities
+- More advanced analytics
+- Additional integration test coverage
