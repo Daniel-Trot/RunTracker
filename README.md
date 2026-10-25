@@ -199,7 +199,7 @@ DB_PASSWORD=your_postgresql_password
 On Windows:
 
 ```bash
-mvnw.cmd spring-boot:run
+.\mvnw.cmd spring-boot:run
 ```
 
 On macOS or Linux:
