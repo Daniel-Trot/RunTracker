@@ -11,6 +11,8 @@ import runtracker.backend.dto.TrainingRequest;
 import runtracker.backend.dto.TrainingResponse;
 import runtracker.backend.exception.TrainingNotFoundException;
 import runtracker.backend.service.TrainingService;
+import org.springframework.context.annotation.Import;
+import runtracker.backend.config.SecurityConfig;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -23,6 +25,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(TrainingController.class)
+@Import(SecurityConfig.class)
 public class TrainingControllerTest {
 
     @Autowired
