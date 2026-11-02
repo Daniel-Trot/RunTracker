@@ -7,11 +7,16 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import runtracker.backend.dto.LoginRequest;
+import runtracker.backend.dto.LoginResponse;
 import runtracker.backend.dto.UserRequest;
 import runtracker.backend.dto.UserResponse;
 import runtracker.backend.exception.EmailAlreadyExistsException;
+import runtracker.backend.exception.InvalidCredentialsException;
 import runtracker.backend.model.User;
 import runtracker.backend.repository.UserRepository;
+
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -27,6 +32,9 @@ public class UserServiceTest {
 
     @Mock
     private PasswordEncoder passwordEncoder;
+
+    @Mock
+    private JwtService jwtService;
 
     @InjectMocks
     private UserService userService;
@@ -87,5 +95,89 @@ public class UserServiceTest {
         assertEquals("Email already exists!", exception.getMessage());
         verify(passwordEncoder, never()).encode(anyString());
         verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    void checkLoginSuccess(){
+
+        // GIVEN
+        User user = new User();
+        user.setEmail("test@gmail.com");
+        user.setPasswordHash("$hashedPassword");
+
+        LoginRequest request = new LoginRequest();
+        request.setEmail("test@gmail.com");
+        request.setPassword("password");
+
+        when(userRepository.findByEmail(request.getEmail()))
+                .thenReturn(Optional.of(user));
+
+        when(passwordEncoder.matches("password","$hashedPassword"))
+                .thenReturn(true);
+
+        when(jwtService.generateToken("test@gmail.com"))
+                .thenReturn("token");
+
+        // WHEN
+        LoginResponse response = userService.login(request);
+
+        // THEN
+        assertEquals("token", response.getToken());
+        verify(passwordEncoder).matches("password", "$hashedPassword");
+        verify(jwtService).generateToken("test@gmail.com");
+    }
+
+    @Test
+    void checkEmailNotFound(){
+
+        // Given
+        LoginRequest request = new LoginRequest();
+        request.setEmail("test@gmail.com");
+        request.setPassword("password");
+
+        when(userRepository.findByEmail("test@gmail.com"))
+                .thenReturn(Optional.empty());
+
+        // WHEN
+        InvalidCredentialsException exception = assertThrows(
+                InvalidCredentialsException.class,
+                () -> userService.login(request)
+        );
+
+        // THEN
+        assertEquals("Invalid email or password!", exception.getMessage());
+        verify(userRepository).findByEmail("test@gmail.com");
+        verify(passwordEncoder, never()).matches(anyString(), anyString());
+        verify(jwtService,  never()).generateToken(anyString());
+    }
+
+    @Test
+    void checkWrongPassword(){
+
+        // Given
+        User user = new User();
+        user.setEmail("test@gmail.com");
+        user.setPasswordHash("$hashedPassword");
+
+        LoginRequest request = new LoginRequest();
+        request.setEmail("test@gmail.com");
+        request.setPassword("password");
+
+        when(userRepository.findByEmail(request.getEmail()))
+                .thenReturn(Optional.of(user));
+
+        when(passwordEncoder.matches("password","$hashedPassword"))
+                .thenReturn(false);
+
+        // WHEN
+        InvalidCredentialsException exception = assertThrows(
+                InvalidCredentialsException.class,
+                () -> userService.login(request));
+
+        // THEN
+        assertEquals("Invalid email or password!", exception.getMessage());
+        verify(userRepository).findByEmail(request.getEmail());
+        verify(passwordEncoder).matches("password", "$hashedPassword");
+        verify(jwtService, never()).generateToken(anyString());
     }
 }
