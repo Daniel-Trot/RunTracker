@@ -1,7 +1,7 @@
 # RunTracker
-RunTracker is a RESTful backend application for managing and analyzing running activities. 
-It provides CRUD operations, filtering, statistics, pagination, validation and automated tests 
-using Spring Boot and PostgreSQL.
+RunTracker is a RESTful backend application for managing and analyzing running activities.
+It provides training management, filtering, statistics, user registration, secure password hashing
+and JWT-based login using Spring Boot and PostgreSQL.
 
 ![CI](https://github.com/Daniel-Trot/RunTracker/actions/workflows/ci.yaml/badge.svg)
 
@@ -14,6 +14,10 @@ using Spring Boot and PostgreSQL.
 - Request validation
 - Global error handling
 - DTO-based request and response handling
+- User registration
+- Secure password hashing with BCrypt
+- User login
+- JWT token generation for user login
 
 ## Tech Stack
 - Java
@@ -31,6 +35,8 @@ using Spring Boot and PostgreSQL.
 - GitHub Actions
 - OpenAPI / Swagger
 - Testcontainers
+- Spring Security
+- JJWT
 
 ## Architecture
 ```text
@@ -61,6 +67,8 @@ Additional components:
 | GET | `/api/trainings/by-date?from=2026-10-01&to=2026-10-31` | Filter trainings by date range |
 | GET | `/api/trainings/stats` | Get statistics for all trainings |
 | GET | `/api/trainings/stats?from=2026-10-01&to=2026-10-31` | Get statistics for a specific date range |
+| POST | `/api/users/register` | Register a new user |
+| POST | `/api/users/login` | Authenticate a user and return a JWT |
 
 ### Example Request
 
@@ -117,6 +125,11 @@ and returned as structured HTTP 400 responses.
 
 Missing trainings are returned as HTTP 404 responses.
 
+User registration and login requests are also validated.
+
+- Duplicate email addresses return HTTP `409 Conflict`.
+- Invalid login credentials return HTTP `401 Unauthorized`.
+
 ## Testing
 
 The project includes unit, controller and integration tests.
@@ -124,6 +137,9 @@ The project includes unit, controller and integration tests.
 - `TrainingServiceTest` uses JUnit 5 and Mockito to test business logic independently of the database.
 - `TrainingControllerTest` uses MockMvc with a mocked service layer to test REST endpoints, validation and HTTP status codes.
 - `TrainingIntegrationTest` uses Testcontainers with PostgreSQL to test the complete flow from controller to service to repository.
+- `UserServiceTest` tests user registration and login business logic.
+- `UserControllerTest` tests registration and login endpoints, validation and HTTP status codes.
+- `JwtServiceTest` verifies JWT generation, subject and expiration.
 - GitHub Actions automatically runs the test suite on every push and pull request.
 
 ## Setup
@@ -162,25 +178,32 @@ For example, using pgAdmin:
 3. Select **Create → Database**
 4. Enter `runtracker` as the database name
 
-### 3. Configure the database connection
+### 3. Configure database and JWT secret
 The PostgreSQL connection is configured in:
 
 ```text
 src/main/resources/application.properties
 ```
 
-The application expects the database password through the `DB_PASSWORD` environment variable:
+The application uses environment variables for the database password and JWT signing secret:
 
 ```properties
 spring.datasource.url=jdbc:postgresql://localhost:5432/runtracker
 spring.datasource.username=postgres
 spring.datasource.password=${DB_PASSWORD}
+jwt.secret=${JWT_SECRET}
 
 spring.jpa.hibernate.ddl-auto=update
 spring.jpa.show-sql=true
 ```
 
-Set the `DB_PASSWORD` environment variable to your local PostgreSQL password before starting the application.
+The application expects the following environment variables:
+
+```text
+DB_PASSWORD=your_postgresql_password
+JWT_SECRET=your_base64_encoded_jwt_secret
+```
+Set both environment variables before starting the application.
 
 In IntelliJ IDEA, this can be configured under:
 
@@ -192,6 +215,7 @@ Example:
 
 ```text
 DB_PASSWORD=your_postgresql_password
+JWT_SECRET=your_base64_encoded_jwt_secret
 ```
 
 ### 4. Start the application
@@ -236,6 +260,7 @@ Create a `.env` file in the project root:
 
 ```env
 POSTGRES_PASSWORD=your_postgresql_password
+JWT_SECRET=your_base64_encoded_jwt_secret
 ```
 
 The `.env` file is excluded from Git and should not be committed.
@@ -276,6 +301,10 @@ Database data is stored in a Docker volume and remains available after the conta
 
 The project is actively being developed. Planned improvements include:
 
-- Frontend integration for managing and analyzing training activities
-- More advanced analytics
-- Additional integration test coverage
+- Associate training activities with individual users
+- Protect training endpoints using JWT authentication
+- Ensure users can only access and modify their own training data
+- Introduce Flyway for versioned database migrations
+- Add authentication and authorization integration tests
+- Build a frontend for managing and analyzing training activities
+- Add more advanced training analytics and visualizations

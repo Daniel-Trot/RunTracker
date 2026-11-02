@@ -7,15 +7,18 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import runtracker.backend.dto.LoginRequest;
+import runtracker.backend.dto.LoginResponse;
 import runtracker.backend.dto.UserRequest;
 import runtracker.backend.dto.UserResponse;
 import runtracker.backend.exception.EmailAlreadyExistsException;
+import runtracker.backend.exception.InvalidCredentialsException;
 import runtracker.backend.service.UserService;
 import org.springframework.context.annotation.Import;
 import runtracker.backend.config.SecurityConfig;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -87,9 +90,9 @@ public class UserControllerTest {
 
         // WHEN + THEN
         mockMvc.perform(post("/api/users/register")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request))
-        )
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request))
+                )
                 .andExpect(status().isBadRequest());
     }
 
@@ -109,4 +112,66 @@ public class UserControllerTest {
                 .andExpect(status().isBadRequest());
     }
 
+    @Test
+    void loginSucceded() throws Exception {
+
+        // GIVEN
+        LoginRequest request = new LoginRequest();
+        request.setEmail("test@gmail.com");
+        request.setPassword("password");
+
+        LoginResponse response = new LoginResponse();
+        response.setToken("token");
+
+        when(userService.login(any(LoginRequest.class)))
+                .thenReturn(response);
+
+        // WHEN + THEN
+        mockMvc.perform(post("/api/users/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request))
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token")
+                        .value("token"));
+    }
+
+    @Test
+    void loginInvalidCredentialsIsUnauthorized() throws Exception {
+
+        // GIVEN
+        LoginRequest request = new LoginRequest();
+        request.setEmail("test@gmail.com");
+        request.setPassword("password");
+
+        when(userService.login(any(LoginRequest.class)))
+                .thenThrow(new InvalidCredentialsException("Invalid email or password!"));
+
+        // WHEN + THEN
+        mockMvc.perform(post("/api/users/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request))
+                )
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401))
+                .andExpect(jsonPath("$.error").value("Invalid email or password!"));
+    }
+
+    @Test
+    void loginInvalidCredentialsBadRequest() throws Exception {
+
+        // GIVEN
+        LoginRequest request = new LoginRequest();
+        request.setEmail("test@gmail.com");
+        request.setPassword("123");
+
+        // WHEN + THEN
+        mockMvc.perform(post("/api/users/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request))
+                )
+                .andExpect(status().isBadRequest());
+
+        verify(userService, never()).login(any(LoginRequest.class));
+    }
 }
